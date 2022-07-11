@@ -1,0 +1,9 @@
+build/
+dist/
+env/
+*.md
+*.txt
+*.xlsx
+*.log
+*.pmml
+*.spec
