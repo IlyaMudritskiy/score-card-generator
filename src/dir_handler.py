@@ -1,20 +1,36 @@
+import os
+from dataclasses import dataclass
+from accessify import private
+
+from src.settings import get_logger
+from src.data_classes import Files
+
+
+log = get_logger("dir_handler.log")
+
+
+@dataclass
 class DirHandler():
 
-    def __init__(self, path: str) -> None:
+    path: str
+    files_list: dict = {}
+
+    def __post_init__(self, path: str) -> None:
         if not path:
             log.fatal("Empty path!")
             raise SystemExit
-        self.path = path
+        else:
+            self.files_list = self.get_sorted_files()
 
+    @private
     def get_dir_list(self) -> list:
-
         try:
             return os.listdir(self.path)
         except Exception as e:
             log.fatal(e)
 
+    @private
     def get_files_with_extension(self, extension: str) -> list:
-
         """
         Return list with full file names:
         ['test.pmml', 'test2.pmml']
@@ -27,11 +43,10 @@ class DirHandler():
             if _f[1] == extension:
                 result.append(f"{_f[0]}{_f[1]}")
 
-        log.debug(f"OK - list of files with '{extension}' extension created")
         return result
 
-    def get_sorted_files(self) -> dict:
-
+    @private
+    def get_sorted_files(self) -> Files:
         """
         Return object Files {
             'xlsx': 'test.xlsx', 
@@ -46,7 +61,4 @@ class DirHandler():
         files["pmml"] = self.get_files_with_extension(".pmml")
         files["txt"] = self.get_files_with_extension(".txt")
 
-        result = Files(**files)
-
-        log.debug(f"OK - List with sorted files was created")
-        return result
+        return files
