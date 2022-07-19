@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class OMDMParam:
     # Basic OMDM param from parsing model.txt
     omdm_name: str
-    param_type: str
+    _type: str
 
 
 @dataclass
