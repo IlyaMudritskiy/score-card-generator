@@ -13,14 +13,18 @@ log = get_logger("dir_handler.log")
 class DirHandler():
 
     path: str
-    files_list: dict = {}
+    xlsx_file: str = ""
+    model_file: str = ""
+    pmml_files: list = []
 
     def __post_init__(self, path: str) -> None:
         if not path:
             log.fatal("Empty path!")
             raise SystemExit
         else:
-            self.files_list = self.get_sorted_files()
+            self.xlsx_file = self.get_sorted_files()[".xlsx"]
+            self.model_file = self.get_sorted_files()[".txt"]
+            self.pmml_files = self.get_sorted_files()[".pmml"]
 
     @private
     def get_dir_list(self) -> list:

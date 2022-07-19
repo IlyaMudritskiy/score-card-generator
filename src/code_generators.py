@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from settings import get_logger
+from src.settings import get_logger
 
 log = get_logger("code_generators.log")
 
@@ -28,6 +28,7 @@ class OMDMCode:
                 f'endif'
             )
         if self._type == "string":
+            # OMDM code for string params
             result = (
                 f'xScoreInput.{self.param} := dms_App_Get_NumToStr(dmi_App_Get_ScoreVariableValue("#{self.param}"));\n'
                 f'if(xScoreInput.{self.param} = "-99999") then\n'
@@ -95,7 +96,7 @@ class ReportFields:
     params: list
     report_fields: list = []
 
-    def get_report_field(self, param: str) -> None:
+    def get_report_field(self, param: str) -> str:
         result = f"/Application/CDA[@CDAISACTIVE='Active']/CDAScore/CDAScoreParam[@CDASPNAME='{param}']/@CDASPVALUE"
         return result
 
