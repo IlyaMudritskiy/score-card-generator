@@ -31,8 +31,7 @@ class PMMLCard:
 
 
 
-
-
+# TODO - Class for excel search result
 
 @dataclass
 class XlsxSearchRes:

@@ -125,7 +125,7 @@ class OMDMExtractor:
                 # From: xs:decimal
                 # To: decimal
                 _["param_type"] = value[1].split(":")[1]
-                p = Param(**_)
+                p = OMDMParam(**_)
                 result.append(p)
 
             log.debug(f"OK - Model '{self.model_file}' parsed.")
