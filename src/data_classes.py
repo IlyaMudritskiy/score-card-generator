@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -9,10 +9,16 @@ class OMDMParam:
 
 
 @dataclass
+class ExcelParam:
+    name: list = field(default_factory=list)
+    method: list = field(default_factory=list)
+
+
+@dataclass
 class FullParam(OMDMParam):
     # Extended OMDM param with name in card and method in xlsx
-    pmml_name: str = ""
-    method: str = ""
+    pmml_name: str
+    method: str
 
 
 @dataclass
