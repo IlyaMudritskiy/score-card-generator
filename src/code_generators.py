@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
 
-from accessify import private
-
 from settings import get_logger
 from data_classes import FullParam
 
