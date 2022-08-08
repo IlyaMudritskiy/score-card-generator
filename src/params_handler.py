@@ -219,7 +219,7 @@ class ParamsCombiner:
     def __post_init__(self) -> None:
         self.extract_data_from_files()
 
-    def extract_data_from_files(self):
+    def extract_data_from_files(self) -> None:
         # Get path of script
         path = os.path.abspath(os.getcwd())
         
@@ -231,7 +231,7 @@ class ParamsCombiner:
         self.omdm_data = OMDMExtractor(files.model_file[0])
         self.excel_data = XlsxExtractor(files.xlsx_file[0])
 
-    def prepare_score_card(self, card: PMMLCard):
+    def prepare_score_card(self, card: PMMLCard) -> list[FullParam]:
         args = {}
         result = []
 
@@ -248,7 +248,7 @@ class ParamsCombiner:
         
         return result
 
-    def prepare_all_cards(self):
+    def prepare_all_cards(self) -> list[PMMLCardExt]:
         args = {}
         result = []
 
@@ -259,11 +259,3 @@ class ParamsCombiner:
             result.append(PMMLCardExt(**args))
         
         return result
-
-def main():
-
-    pc = ParamsCombiner()
-    pprint(pc.prepare_all_cards())
-
-if __name__ == "__main__":
-    main()

@@ -19,7 +19,6 @@ class OMDMCode(CodeMixin):
         # Fill class properties with ready code on creation
         self.set_omdm_code()
 
-    @private
     def get_logic_code(self, param: FullParam) -> list[str]:
         if param._type == "decimal":
             result = [
@@ -39,7 +38,6 @@ class OMDMCode(CodeMixin):
         
         return result
 
-    @private
     def get_logging_code(self, param: FullParam) -> list[str]:
         if param._type == "decimal":
             result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.omdm_name}", xScoreInput.{param.omdm_name});\n',]
@@ -49,7 +47,6 @@ class OMDMCode(CodeMixin):
 
         return result
 
-    @private
     def get_omdm_logic(self) -> list[str]:
         result = []
 
@@ -58,7 +55,6 @@ class OMDMCode(CodeMixin):
 
         return result
 
-    @private
     def get_omdm_logging(self) -> list[str]:
         result = []
 
@@ -67,7 +63,6 @@ class OMDMCode(CodeMixin):
 
         return result
 
-    @private
     def set_omdm_code(self) -> None:
         self.code += self.get_omdm_logic()
         self.code += "\n"
@@ -82,7 +77,6 @@ class BLAZECode(CodeMixin):
     def __post_init__(self):
         self.set_blaze_code()
 
-    @private
     def get_first_lines(self) -> list[str]:
         # Get the beginning of code
         result = [
@@ -93,7 +87,6 @@ class BLAZECode(CodeMixin):
         
         return result
 
-    @private
     def get_param_line(self, param: FullParam) -> list[str]:
         # Get a line for param
         if param._type == "decimal":
@@ -108,7 +101,6 @@ class BLAZECode(CodeMixin):
 
         return result
 
-    @private
     def get_params_lines(self) -> list[str]:
         result = []
 
@@ -117,7 +109,6 @@ class BLAZECode(CodeMixin):
         
         return result
 
-    @private
     def get_last_lines(self) -> list[str]:
         result = [
             f'\t_{self.score_card_name}Out is some {self.score_card_name}Out initially {self.score_card_name}(_{self.score_card_name}In);\n',
@@ -128,7 +119,6 @@ class BLAZECode(CodeMixin):
 
         return result
 
-    @private
     def get_blaze_code(self):
         result = []
 
@@ -138,7 +128,6 @@ class BLAZECode(CodeMixin):
 
         return result
 
-    @private
     def set_blaze_code(self) -> None:
         self.code = self.get_blaze_code()
 
@@ -170,7 +159,6 @@ class ReportFields(CodeMixin):
             self.set_advanced_report()
             self.add_counter_to_report_line()
 
-    @private
     def add_counter_to_report_line(self) -> None:
         result = []
 
@@ -181,7 +169,6 @@ class ReportFields(CodeMixin):
 
         self.code = result
 
-    @private
     def set_standard_report(self) -> None:
 
         start = [
@@ -203,7 +190,6 @@ class ReportFields(CodeMixin):
 
         self.code += end
 
-    @private
     def set_advanced_report(self) -> None:
 
         start = [
