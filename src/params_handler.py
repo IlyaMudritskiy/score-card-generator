@@ -1,9 +1,12 @@
 from dataclasses import dataclass, field
 import xml.etree.ElementTree as ET
+import os
+from pprint import pprint
 
 import pandas
 
-from data_classes import OMDMParam, FullParam, PMMLCard,ExcelParam, Files
+from data_classes import OMDMParam, FullParam, PMMLCard,ExcelParam, Files, PMMLCardExt
+from dir_handler import DirHandler
 from settings import get_logger
 
 
@@ -14,15 +17,11 @@ log = get_logger("params_handler.log")
 class PMMLExtractor:
 
     pmml_files: list = field(default_factory=list)
-    full_pmml_data: list = field(default_factory=list)
+    full_pmml_data: list[PMMLCard] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if not self.pmml_files:
-            log.fatal("No '.pmml' files!")
-            raise SystemExit
-        else:
-            # Write data parsed from ALL .pmml files to class property on creation
-            self.full_pmml_data = self.parse_all_pmml()
+        # Write data parsed from ALL .pmml files to class property on creation
+        self.full_pmml_data = self.parse_all_pmml()
 
     def get_pmml_data(self, filename: str) -> PMMLCard:
         """
@@ -56,7 +55,7 @@ class PMMLExtractor:
         result = PMMLCard(score_name, params)
         return result
 
-    def parse_all_pmml(self) -> None:
+    def parse_all_pmml(self) -> list[PMMLCard]:
         """
         Parse ALL pmml files!
 
@@ -69,35 +68,34 @@ class PMMLExtractor:
 
         return all_pmml_data
 
-# TODO - Переписать класс, чтобы файл парсился один раз, а после происходил поиск данных
 @dataclass
 class OMDMExtractor:
 
-    model_file: str
+    filename: str
+    model_params: list[OMDMParam] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if not self.model_file:
-            log.fatal("No 'model.txt' file!")
-            raise SystemExit
+        self.model_params = self.get_omdm_params()
 
-    def get_omdm_params(self) -> dict:
+    def get_omdm_params(self) -> list[OMDMParam]:
 
         """
-        Return list of OMDMParam class instances:
+        Return list of list:
         [
-            {'name': 'param_1', 'type': 'decimal'}, 
-            {'name': 'Param_2', 'type': 'decimal'}, 
-            {'name': 'PARAM_3', 'type': 'string'}, 
-            {'name': 'ParAm_4', 'type': 'string'}
+            ['param_1', 'decimal'], 
+            ['Param_2', 'decimal'], 
+            ['PARAM_3', 'string'], 
+            ['ParAm_4', 'string']
         ]
         """
 
         result = []
+        args = {}
         params_list = []
 
         try:
             # Open model.txt to get OMDM params
-            with open(self.model_file, "r") as f:
+            with open(self.filename, "r") as f:
 
                 for line in f.readlines():
                     params = []
@@ -112,21 +110,24 @@ class OMDMExtractor:
                     params_list.append(params)
 
             for value in params_list:
-                _ = {}
-                _["omdm_name"] = value[0]
+                # Name
+                args["name"] = value[0]
+
                 # From: xs:decimal
                 # To: decimal
-                _["param_type"] = value[1].split(":")[1]
+                args["_type"] = value[1].split(":")[1]
                 
-                p = OMDMParam(**_)
-                result.append(p)
-
-            log.debug(f"OK - Model '{self.model_file}' parsed.")
-
+                result.append(OMDMParam(**args))
+                
         except Exception as e:
             log.error(e)
 
         return result
+
+    def find_omdm_param(self, name: str) -> OMDMParam:
+        for param in self.model_params:
+            if param.name.lower() == name.lower():
+                return param
 
 
 @dataclass
@@ -141,6 +142,8 @@ class XlsxExtractor:
     def parse_xlsx(self) -> pandas.DataFrame:
         """Return a DataFrame object with excel sheet content."""
 
+        xlsx_sheet = pandas.DataFrame()
+
         try:
             xlsx_sheet = pandas.read_excel(self.filename, sheet_name='Data')
             log.debug(f"OK - File '{self.filename}' was parsed into dataframe.")
@@ -153,6 +156,7 @@ class XlsxExtractor:
     def find_param_in_xlsx(self, param: str) -> pandas.DataFrame:
         """Return a DataFrame object with all occurances of inputed param."""
 
+        # All cases of param (PARAM, param, Param)
         param_query = [param.upper(), param.lower(), param]
 
         try:
@@ -163,16 +167,18 @@ class XlsxExtractor:
 
         return result
 
-    def get_param_info(self, param_name: str) -> None:
+    def get_param_info(self, param_name: str) -> ExcelParam:
         """Return ExcelParam instance with name and method from all occurances in excel."""
 
         param_info = {}
 
         try:
             excel_info = self.find_param_in_xlsx(param_name).to_dict()
+
         except Exception as e:
             log.error(e)
 
+        # Get all param info from find_param response
         var_name = list(excel_info["Var_Name"].values())
         var_methods = list(excel_info["OMDM Data_Method"].values())
 
@@ -180,34 +186,84 @@ class XlsxExtractor:
         if not var_name:
             log.error(f"Parameter {param_name} was not found.")
 
+        # Delete duplicates from name and method and pack into dict
         if var_name:
-            param_info["name"] = list(dict.fromkeys(var_name))
-            param_info["method"] = list(dict.fromkeys(var_methods))
+
+            # Delete duplicates of param name and get it as str
+            param_name = list(dict.fromkeys(var_name))[0]
+
+            # Delete duplicates of param method 
+            param_method = list(dict.fromkeys(var_methods))
+
+            # Check if there is more than one method for param
+            if len(param_method) > 1:
+                log.error(f"For '{param_name}' exists more than one method!")
+
+            # Get param method as string
+            if len(param_method) == 1:
+                param_method = param_method[0]
+
+            param_info["name"] = param_name
+            param_info["method"] = param_method
 
         return ExcelParam(**param_info)
-
-
 
 
 @dataclass
 class ParamsCombiner:
 
-    score_card: PMMLCard
-    omdm: list = field(default_factory=list)
-    excel: list = field(default_factory=list)
+    excel_data: XlsxExtractor = None
+    omdm_data: OMDMExtractor = None
+    pmml_data: PMMLExtractor = None
 
+    def __post_init__(self) -> None:
+        self.extract_data_from_files()
 
+    def extract_data_from_files(self):
+        # Get path of script
+        path = os.path.abspath(os.getcwd())
+        
+        # Get list of files in path
+        files = DirHandler(path)
 
-    def get_full_param_list():
-        ...
+        # Create extractor class for evety file type
+        self.pmml_data = PMMLExtractor(files.pmml_files)
+        self.omdm_data = OMDMExtractor(files.model_file[0])
+        self.excel_data = XlsxExtractor(files.xlsx_file[0])
+
+    def prepare_score_card(self, card: PMMLCard):
+        args = {}
+        result = []
+
+        for param_name in card.params:
+            omdm_info = self.omdm_data.find_omdm_param(param_name)
+            excel_info = self.excel_data.get_param_info(param_name)
+
+            args["name"] = omdm_info.name
+            args["_type"] = omdm_info._type
+            args["pmml_name"] = param_name
+            args["method"] = excel_info.method
+        
+            result.append(FullParam(**args))
+        
+        return result
+
+    def prepare_all_cards(self):
+        args = {}
+        result = []
+
+        for card in self.pmml_data.full_pmml_data:
+            args["score_name"] = card.score_name
+            args["params"] = self.prepare_score_card(card)
+
+            result.append(PMMLCardExt(**args))
+        
+        return result
 
 def main():
-    xl = XlsxExtractor("test.xlsx")
-    param = input("Param >>>")
-    res = xl.find_param_in_xlsx(param)
-    print(res)
-    p = xl.get_param_info(param)
-    print(p)
+
+    pc = ParamsCombiner()
+    pprint(pc.prepare_all_cards())
 
 if __name__ == "__main__":
     main()
