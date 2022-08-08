@@ -8,3 +8,5 @@ env/
 *.pmml
 *.spec
 __pycache__/
+.DS_Store
+.gitignore

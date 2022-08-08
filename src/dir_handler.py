@@ -1,9 +1,8 @@
 import os
-from dataclasses import dataclass
-from accessify import private
+from dataclasses import dataclass, field
 
-from src.settings import get_logger
-from src.data_classes import Files
+from settings import get_logger
+from data_classes import Files
 
 
 log = get_logger("dir_handler.log")
@@ -15,25 +14,23 @@ class DirHandler():
     path: str
     xlsx_file: str = ""
     model_file: str = ""
-    pmml_files: list = []
+    pmml_files: list = field(default_factory=list)
 
-    def __post_init__(self, path: str) -> None:
-        if not path:
+    def __post_init__(self) -> None:
+        if not self.path:
             log.fatal("Empty path!")
             raise SystemExit
         else:
-            self.xlsx_file = self.get_sorted_files()[".xlsx"]
-            self.model_file = self.get_sorted_files()[".txt"]
-            self.pmml_files = self.get_sorted_files()[".pmml"]
+            self.xlsx_file = self.get_sorted_files()["xlsx"]
+            self.model_file = self.get_sorted_files()["txt"]
+            self.pmml_files = self.get_sorted_files()["pmml"]
 
-    @private
     def get_dir_list(self) -> list:
         try:
             return os.listdir(self.path)
         except Exception as e:
             log.fatal(e)
 
-    @private
     def get_files_with_extension(self, extension: str) -> list:
         """
         Return list with full file names:
@@ -49,7 +46,6 @@ class DirHandler():
 
         return result
 
-    @private
     def get_sorted_files(self) -> Files:
         """
         Return object Files {

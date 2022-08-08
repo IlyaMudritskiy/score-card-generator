@@ -18,7 +18,7 @@ settings = Settings()
 
 # Logger settings
 LOG_LEVEL = logging.DEBUG
-FORMAT = "%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
+FORMAT = "%(asctime)s - [%(levelname)s] - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
 
 def get_logger(log_file_name: str) -> object:
 
