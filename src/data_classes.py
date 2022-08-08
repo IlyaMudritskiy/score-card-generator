@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 @dataclass
 class OMDMParam:
     # Basic OMDM param from parsing model.txt
-    omdm_name: str
+    name: str
     _type: str
 
 
@@ -33,13 +33,10 @@ class Files:
 class PMMLCard:
     # Needed info from pmml score card
     score_name: str
-    params: list
+    params: list[str] = field(default_factory=list)
 
-
-
-# TODO - Class for excel search result
 
 @dataclass
-class XlsxSearchRes:
-    xlsx_name: str
-    method: str
+class PMMLCardExt:
+    score_name: str
+    params: list[FullParam] = field(default_factory=list)
