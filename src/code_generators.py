@@ -1,14 +1,16 @@
 from dataclasses import dataclass, field
+import os
 
-from settings import get_logger
-from data_classes import FullParam
+from src.settings import get_logger
+from src.data_classes import FullParam, PMMLCardExt
 
 log = get_logger("code_generators.log")
 
 
 @dataclass
 class CodeMixin:
-    params: list[FullParam]
+    score_card_name: str = field(default_factory=str)
+    params: list[FullParam] = field(default_factory=list)
     code: list = field(default_factory=list)
 
 
@@ -22,17 +24,17 @@ class OMDMCode(CodeMixin):
     def get_logic_code(self, param: FullParam) -> list[str]:
         if param._type == "decimal":
             result = [
-                f'xScoreInput.{param.omdm_name} := dmi_App_Get_ScoreVariableValue("#{param.omdm_name}");\n',
-                f'if(xScoreInput.{param.omdm_name} = -99999) then\n',
-                f'    xScoreInput.{param.omdm_name} = {param.method};\n',
+                f'xScoreInput.{param.name} := dmi_App_Get_ScoreVariableValue("#{param.name}");\n',
+                f'if(xScoreInput.{param.name} = -99999) then\n',
+                f'    xScoreInput.{param.name} = {param.method};\n',
                 f'endif\n',
             ]
         
         if param._type == "string":
             result = [
-                f'xScoreInput.{param.omdm_name} := dms_App_Get_NumToStr(dmi_App_Get_ScoreVariableValue("#{param.omdm_name}"));\n',
-                f'if(xScoreInput.{param.omdm_name} = "-99999") then\n',
-                f'    xScoreInput.{param.omdm_name} = dms_App_Get_NumToStr({param.method});\n',
+                f'xScoreInput.{param.name} := dms_App_Get_NumToStr(dmi_App_Get_ScoreVariableValue("#{param.name}"));\n',
+                f'if(xScoreInput.{param.name} = "-99999") then\n',
+                f'    xScoreInput.{param.name} = dms_App_Get_NumToStr({param.method});\n',
                 f'endif\n',
             ]
         
@@ -40,10 +42,10 @@ class OMDMCode(CodeMixin):
 
     def get_logging_code(self, param: FullParam) -> list[str]:
         if param._type == "decimal":
-            result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.omdm_name}", xScoreInput.{param.omdm_name});\n',]
+            result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.name}", xScoreInput.{param.name});\n',]
 
         if param._type == "string":
-            result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.omdm_name}", Val(xScoreInput.{param.omdm_name}));\n',]
+            result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.name}", Val(xScoreInput.{param.name}));\n',]
 
         return result
 
@@ -72,8 +74,6 @@ class OMDMCode(CodeMixin):
 @dataclass
 class BLAZECode(CodeMixin):
 
-    score_card_name: str = field(default_factory=str)
-
     def __post_init__(self):
         self.set_blaze_code()
 
@@ -91,12 +91,12 @@ class BLAZECode(CodeMixin):
         # Get a line for param
         if param._type == "decimal":
             result = [
-                f"\t_{self.score_card_name}In.{param.pmml_name} = theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.{param.omdm_name};\n",
+                f"\t_{self.score_card_name}In.{param.pmml_name} = theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.{param.name};\n",
             ]
 
         if param._type == "string":
             result = [
-                f"\t_{self.score_card_name}In.{param.pmml_name} = portable().toInteger(theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.{param.omdm_name});\n",
+                f"\t_{self.score_card_name}In.{param.pmml_name} = portable().toInteger(theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.{param.name});\n",
             ]
 
         return result
@@ -147,9 +147,7 @@ class BLAZECode(CodeMixin):
 class ReportFields(CodeMixin):
 
     fields_type: str = field(default_factory=str)
-    score_card_name: str = field(default_factory=str)
     start: int = 0
-
 
     def __post_init__(self):
         if self.fields_type == "standard":
@@ -180,7 +178,7 @@ class ReportFields(CodeMixin):
         self.code += start
 
         for param in self.params:
-            self.code.append(f"/Application/CDA[@CDAISACTIVE='Active']/CDAScore/CDAScoreParam[@CDASPNAME='{param.omdm_name}']/@CDASPVALUE\n")
+            self.code.append(f"/Application/CDA[@CDAISACTIVE='Active']/CDAScore/CDAScoreParam[@CDASPNAME='{param.name}']/@CDASPVALUE\n")
             
         end = [
             f"/Application/ApplicationScoring/ScoreModelOutput[@ScoreModelName='{self.score_card_name}']/@FinalScore\n",
@@ -201,7 +199,7 @@ class ReportFields(CodeMixin):
         self.code += start
 
         for param in self.params:
-            self.code.append(f"\#{param.omdm_name}=/Application/CDA[@CDAISACTIVE='Active']/CDAScore/CDAScoreParam[@CDASPNAME='{param.omdm_name}']/@CDASPVALUE")
+            self.code.append(f"\#{param.name}=/Application/CDA[@CDAISACTIVE='Active']/CDAScore/CDAScoreParam[@CDASPNAME='{param.name}']/@CDASPVALUE")
             
         end = [
             f"\#FinalScore=/Application/ApplicationScoring/ScoreModelOutput[@ScoreModelName='{self.score_card_name}']/@FinalScore",
@@ -212,6 +210,28 @@ class ReportFields(CodeMixin):
         self.code += end
 
 
+@dataclass
+class CodeCombiner():
+
+    score_card_list: list[PMMLCardExt] = field(default_factory=list)
+
+    def get_code_for_card(self, card: PMMLCardExt) -> dict:
+        result = {}
+
+        result["omdm"] = OMDMCode(card.score_name, card.params)
+        result["blaze"] = BLAZECode(card.score_name, card.params)
+        result["report"] = ReportFields(card.score_name, card.params, fields_type="standard")
+
+        return result
+
+    def get_code_for_all_cards(self) -> list[list]:
+        result = []
+        for card_ext in self.score_card_list:
+            result.append([card_ext.score_name ,self.get_code_for_card(card_ext)])
+
+        return result
+
+
 def main():
 
     """
@@ -220,7 +240,7 @@ def main():
 
     # Set the params
     full_param_1 = {
-        "omdm_name": "Age",
+        "name": "Age",
         "_type": "decimal",
         "pmml_name": "AGE",
         "method": "dmi_App_Get_AGE",
@@ -228,7 +248,7 @@ def main():
     fp1 = FullParam(**full_param_1)
 
     full_param_2 = {
-        "omdm_name": "Gender",
+        "name": "Gender",
         "_type": "string",
         "pmml_name": "GENDER",
         "method": "dmi_App_Get_GENDER",

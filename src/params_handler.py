@@ -5,9 +5,9 @@ from pprint import pprint
 
 import pandas
 
-from data_classes import OMDMParam, FullParam, PMMLCard,ExcelParam, Files, PMMLCardExt
-from dir_handler import DirHandler
-from settings import get_logger
+from src.data_classes import OMDMParam, FullParam, PMMLCard,ExcelParam, Files, PMMLCardExt
+from src.dir_handler import DirHandler
+from src.settings import get_logger
 
 
 log = get_logger("params_handler.log")

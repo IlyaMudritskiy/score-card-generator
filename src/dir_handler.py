@@ -1,8 +1,8 @@
 import os
 from dataclasses import dataclass, field
 
-from settings import get_logger
-from data_classes import Files
+from src.settings import get_logger
+from src.data_classes import Files
 
 
 log = get_logger("dir_handler.log")
