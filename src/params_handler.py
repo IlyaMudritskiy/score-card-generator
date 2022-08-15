@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 import xml.etree.ElementTree as ET
 import os
-from pprint import pprint
 
 import pandas
 

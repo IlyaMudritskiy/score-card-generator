@@ -2,7 +2,7 @@ build/
 dist/
 env/
 *.md
-*.txt
+model.txt
 *.xlsx
 *.log
 *.pmml
@@ -12,3 +12,4 @@ __pycache__/
 .gitignore
 log*/
 cards*/
+code_examples/

@@ -3,8 +3,6 @@ from src.code_generators import CodeCombiner
 from src.params_handler import ParamsCombiner
 from src.settings import get_logger
 
-from pprint import pprint
-
 log = get_logger("main.log")
 
 def main():
