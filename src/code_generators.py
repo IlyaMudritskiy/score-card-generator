@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import os
 
 from src.settings import get_logger
 from src.data_classes import FullParam, PMMLCardExt
@@ -16,13 +15,17 @@ class CodeMixin:
 
 @dataclass
 class OMDMCode(CodeMixin):
+    """Class for generating code for method in OMDM."""
 
     def __post_init__(self) -> None:
         # Fill class properties with ready code on creation
         self.set_omdm_code()
 
     def get_logic_code(self, param: FullParam) -> list[str]:
+        """Generate code with apppropriate methods and conditions."""
+
         if param._type == "decimal":
+            # Code for numeric params
             result = [
                 f'xScoreInput.{param.name} := dmi_App_Get_ScoreVariableValue("#{param.name}");\n',
                 f'if(xScoreInput.{param.name} = -99999) then\n',
@@ -31,6 +34,7 @@ class OMDMCode(CodeMixin):
             ]
         
         if param._type == "string":
+            # Code for string params
             result = [
                 f'xScoreInput.{param.name} := dms_App_Get_NumToStr(dmi_App_Get_ScoreVariableValue("#{param.name}"));\n',
                 f'if(xScoreInput.{param.name} = "-99999") then\n',
@@ -41,6 +45,8 @@ class OMDMCode(CodeMixin):
         return result
 
     def get_logging_code(self, param: FullParam) -> list[str]:
+        """Generate code to log params to certain structure."""
+
         if param._type == "decimal":
             result = [f'dmw_App_AddScoreCardVariablesParam2CDA("{param.name}", xScoreInput.{param.name});\n',]
 
@@ -50,6 +56,7 @@ class OMDMCode(CodeMixin):
         return result
 
     def get_omdm_logic(self) -> list[str]:
+        """Generate code with logic for all params provided."""
         result = []
 
         for param in self.params:
@@ -58,6 +65,7 @@ class OMDMCode(CodeMixin):
         return result
 
     def get_omdm_logging(self) -> list[str]:
+        """Generate code with logging results for all params provided."""
         result = []
 
         for param in self.params:
@@ -73,12 +81,14 @@ class OMDMCode(CodeMixin):
 
 @dataclass
 class BLAZECode(CodeMixin):
+    """Class for generating code for BLAZE."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.set_blaze_code()
 
     def get_first_lines(self) -> list[str]:
-        # Get the beginning of code
+        """Generate first lines before filling params."""
+
         result = [
             f'if theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.SCORECARDNAME = "{self.score_card_name}" then\n',
             '{\n',
@@ -88,7 +98,8 @@ class BLAZECode(CodeMixin):
         return result
 
     def get_param_line(self, param: FullParam) -> list[str]:
-        # Get a line for param
+        """Generate code for one param."""
+
         if param._type == "decimal":
             result = [
                 f"\t_{self.score_card_name}In.{param.pmml_name} = theApp.CDA_NdScoreModel.Cda_NdScoreModelInputInfo.{param.name};\n",
@@ -102,6 +113,8 @@ class BLAZECode(CodeMixin):
         return result
 
     def get_params_lines(self) -> list[str]:
+        """Generate code for all params provided."""
+
         result = []
 
         for param in self.params:
@@ -110,6 +123,8 @@ class BLAZECode(CodeMixin):
         return result
 
     def get_last_lines(self) -> list[str]:
+        """Generate closing code."""
+
         result = [
             f'\t_{self.score_card_name}Out is some {self.score_card_name}Out initially {self.score_card_name}(_{self.score_card_name}In);\n',
             f'\tscore = _{self.score_card_name}Out.score;\n',
@@ -119,37 +134,24 @@ class BLAZECode(CodeMixin):
 
         return result
 
-    def get_blaze_code(self):
+    def set_blaze_code(self) -> None:
         result = []
 
         result += self.get_first_lines()
         result += self.get_params_lines()
         result += self.get_last_lines()
 
-        return result
-
-    def set_blaze_code(self) -> None:
-        self.code = self.get_blaze_code()
-
-
-    def set_end_lines(self) -> None:
-        # Set the end of code
-        result = (
-            f'_{self.score_card_name}Out is some {self.score_card_name}Out initially {self.score_card_name}(_{self.score_card_name}In);\n'
-            f'score = _{self.score_card_name}Out.score;\n'
-            f'label = _{self.score_card_name}Out.label;\n'
-            '}\n'
-        )
-        self.end_lines = result
+        self.code = result
 
 
 @dataclass
 class ReportFields(CodeMixin):
+    """Class for generating XPATH for each required param to use in testing."""
 
     fields_type: str = field(default_factory=str)
     start: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.fields_type == "standard":
             self.set_standard_report()
 
@@ -158,6 +160,8 @@ class ReportFields(CodeMixin):
             self.add_counter_to_report_line()
 
     def add_counter_to_report_line(self) -> None:
+        """Adds a number at the end of XPATH to use in 'result_info.properties' directly."""
+
         result = []
 
         for line in self.code:
@@ -168,6 +172,7 @@ class ReportFields(CodeMixin):
         self.code = result
 
     def set_standard_report(self) -> None:
+        """Generates XPATH for all params to insert into testing app by hand."""
 
         start = [
             f"/Application/CDA[@CDAISACTIVE='Active']/CDAScore[@CDASCRNAME='{self.score_card_name}']/@CDASCRNAME\n",
@@ -189,6 +194,7 @@ class ReportFields(CodeMixin):
         self.code += end
 
     def set_advanced_report(self) -> None:
+        """Generates XPATH for all params to insert into 'result_info.properties'."""
 
         start = [
             f"\#ScoreCard=/Application/CDA[@CDAISACTIVE='Active']/CDAScore[@CDASCRNAME='{self.score_card_name}']/@CDASCRNAME",
@@ -212,10 +218,13 @@ class ReportFields(CodeMixin):
 
 @dataclass
 class CodeCombiner():
+    """Generates full code for all systems for each card provided."""
 
     score_card_list: list[PMMLCardExt] = field(default_factory=list)
 
     def get_code_for_card(self, card: PMMLCardExt) -> dict:
+        """Generate code for all systems for one card."""
+
         result = {}
 
         result["omdm"] = OMDMCode(card.score_name, card.params)
@@ -225,6 +234,8 @@ class CodeCombiner():
         return result
 
     def get_code_for_all_cards(self) -> list[list]:
+        """Generate code for all systems for all cards provided."""
+
         result = []
         for card_ext in self.score_card_list:
             result.append([card_ext.score_name ,self.get_code_for_card(card_ext)])
@@ -232,7 +243,7 @@ class CodeCombiner():
         return result
 
 
-def main():
+def get_code_examples():
 
     """
     To test the code examples run this file.
@@ -308,4 +319,4 @@ def main():
         f.write("```\n")
 
 if __name__ == "__main__":
-    main()
+    get_code_examples()

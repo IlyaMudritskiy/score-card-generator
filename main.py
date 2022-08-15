@@ -10,14 +10,21 @@ log = get_logger("main.log")
 def main():
 
     path = os.path.dirname(os.path.abspath(__file__))
+    log_dir = "log"
+    cards_dir = "cards"
 
     try:
-        os.mkdir("log")
-        os.mkdir("cards")
-
+        os.mkdir(log_dir)
     except Exception as e:
         log.warning(e)
-    
+        pass
+
+    try:
+        os.mkdir(cards_dir)
+    except Exception as e:
+        log.warning(e)
+        pass
+
     # Prepare for getting full code
     params_combiner = ParamsCombiner()
     full_cards_info = params_combiner.prepare_all_cards()
@@ -28,7 +35,7 @@ def main():
 
     for code in ready_code:
         # Write code to 'score_card'.md file
-        with open(f"{path}/cards1/{code[0]}.md", "w") as f:
+        with open(f"{path}/{cards_dir}/{code[0]}.md", "w") as f:
             # Header
             f.write(f"# {code[0]}\n\n")
             # OMDM Code
