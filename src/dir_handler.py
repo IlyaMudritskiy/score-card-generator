@@ -26,10 +26,18 @@ class DirHandler():
             self.pmml_files = self.get_sorted_files()["pmml"]
 
     def get_dir_list(self) -> list:
+
+        exception = "requirements.txt"
+
         try:
-            return os.listdir(self.path)
+            listdir = os.listdir(self.path)
         except Exception as e:
             log.fatal(e)
+
+        if exception in listdir:
+            listdir.remove(exception)
+
+        return listdir
 
     def get_files_with_extension(self, extension: str) -> list:
         """
@@ -40,9 +48,9 @@ class DirHandler():
         result = []
 
         for _file in self.get_dir_list():
-            _f = os.path.splitext(_file)
-            if _f[1] == extension:
-                result.append(f"{_f[0]}{_f[1]}")
+            f = os.path.splitext(_file)
+            if f[1] == extension:
+                result.append(f"{f[0]}{f[1]}")
 
         return result
 
